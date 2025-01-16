@@ -1,0 +1,88 @@
+.modal {
+  &__img {
+    width: 80px;
+    height: 80px;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    &_text {
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 18px;
+      color: #42474d;
+    }
+    &_heading {
+      font-weight: 500;
+      font-size: 20px;
+      line-height: 24px;
+      color: #42474d;
+    }
+  }
+
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 515px;
+
+    &_img {
+      width: 273.44px;
+      height: 160px;
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+
+  &_button {
+    width: 156.5px;
+    height: 44px;
+    border-radius: 16px;
+    padding: 0 10px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 18px;
+  }
+  &_del {
+    color: #ffffff;
+    background-color: #ff4a33;
+
+    &:hover {
+      background-color: #e5432e;
+    }
+  }
+  &_cancel {
+    color: #e5432e;
+    background-color: #ffe9e5;
+    &:hover {
+      background-color: #ffc7bf;
+    }
+  }
+  &_close {
+    width: 260px;
+    font-weight: 600;
+    color: #42474d;
+    background-color: #f2f4f7;
+    &:hover {
+      background-color: #e9edf5;
+    }
+  }
+  &_error {
+    width: 260px;
+    color: #ffffff;
+    background-color: #4da2d6;
+    &:hover {
+      background-color: #4087b2;
+    }
+  }
+}
+}

@@ -1,0 +1,34 @@
+.add__button {
+    width: 316px;
+    height: 44px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 0 24px;
+    border-radius: 16px;
+    background-color: #5CCC81;
+    border: none;
+    &:hover {
+        background-color: #43A865;
+    }
+
+    &_plus {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background-color: #47B26B;
+        color: #FFFFFF;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &_text {
+        font-weight: 500;
+        font-size: 14px;
+        line-height: 18px;
+        color: #FFFFFF;
+    }
+}
