@@ -1,55 +1,106 @@
-import { FC } from "react";
+import { FC,useState } from "react";
 import style from "./formWrapper.module.scss";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
 import "./select.css";
 import { useNavigate } from "react-router-dom";
+import {
+  FormData,
+  IFormWrapper,
+  IRoleOptions,
+} from "../../interfaces/interfaces";
+import { useGetUserQuery } from "../../services/api";
+import { useAppDispatch, useAppSelector } from "../../services/store";
+import { addPersonInHospital } from "../../services/slice";
 
-interface IFormWrapper {
-  title: string;
-  buttonTitle: string;
-  userOptions: IRoleOptions[] | undefined
-}
-type FormData = {
-  lastName: string;
-  birthday: string;
-  gender: string;
-  role: string;
-};
+export const FormWrapper: FC<IFormWrapper> = ({
+  title,
+  buttonTitle,
+  lastItemRef,
+  searchValue,
+  setSearchValue,
+  users,
+}) => {
+  const [userId, setUserId] = useState<number>();
+  const { data: userData } = useGetUserQuery(userId!, { skip: !userId });
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const addedList = useAppSelector((state) => state.usersSlice.addedList);
+  console.log(addedList);
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<FormData>({
+    mode: "onBlur",
+    defaultValues: {
+      gender: "female",
+    },
+  });
 
-export interface IRoleOptions {
-  value: string;
-  label: string;
-}
-
-export const FormWrapper: FC<IFormWrapper> = ({ title, buttonTitle, userOptions }) => {
-  const navigate = useNavigate()
-  const { register, handleSubmit, control, setValue, watch } =
-    useForm<FormData>({
-      mode: "onBlur",
-      defaultValues: {
-        gender: "female",
-      },
-    });
-  const onSubmit = handleSubmit((data) => console.log(data));
+  const onSubmit = handleSubmit((dataForm) => {
+    try {
+      if (userData) {
+        dispatch(addPersonInHospital({ form: dataForm, user: userData.data }));
+      }
+      navigate("/success");
+    } catch (error) {
+      console.log(error);
+      if (error) {
+        navigate("/error");
+      }
+    }
+  });
   const selectedGender = watch("gender", "female");
   const roleOptions: IRoleOptions[] = [
-    { value: "doctor", label: "Доктор" },
+    { value: "Доктор", label: "Доктор" },
     {
-      value: "nurse",
+      value: selectedGender === "female" ? "Медсестра" : "Медбрат",
       label: selectedGender === "female" ? "Медсестра" : "Медбрат",
     },
-    { value: "admin", label: "Админ" },
+    { value: "Админ", label: "Админ" },
   ];
-const closePage = () => {
-  navigate('/')
-}
+  const closePage = () => {
+    navigate("/");
+  };
+  
+  const getHighlightedText = (lastName: string) => {
+    if (searchValue === "") return lastName;
+    const regExp = new RegExp(searchValue, "ig");
+    const matchValue = lastName.match(regExp);
+
+    if (matchValue) {
+      const matchedParts: string[] = lastName.split(regExp);
+      return matchedParts.map((part, index, array) => {
+        if (index < array.length - 1) {
+          const text = matchValue!.shift();
+
+          return (
+            <span key={index}>
+              {part}
+              <span className={style.highlighted}>{text}</span>
+            </span>
+          );
+        }
+        return part;
+      });
+    } else {
+      return lastName;
+    }
+  };
+  // console.log("users", users);
+
   return (
     <div className={style.wrapper}>
       <div className={style.form}>
         <header className={style.form__header}>
           <h1 className={style.form__header_title}>{title}</h1>
-          <button className={style.form__header_close} onClick={closePage}>&#x2715;</button>
+          <button className={style.form__header_close} onClick={closePage}>
+            &#x2715;
+          </button>
         </header>
 
         <form onSubmit={onSubmit} className={style.form__box}>
@@ -64,36 +115,88 @@ const closePage = () => {
                 />
                 <label className={style.form__user_label} htmlFor=""></label>
 
-                <Controller
-                  control={control}
-                  name="lastName"
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <>
-                      <Select
-                        className="select__control"
-                        classNamePrefix="select"
-                        {...field}
-                        options={userOptions}
-                        placeholder="Пользователь"
-                        value={userOptions?.find(
-                          (option) => option.value === field.value
-                        ) || null}
-                        onChange={(selectedOption) =>
-                          field.onChange(
-                            selectedOption ? selectedOption.value : null
-                          )
-                        }
-                      />
-                      {error && <p>{error.message}</p>}
-                    </>
-                  )}
+                <input
+                  type="text"
+                  className={
+                    !errors.lastName
+                      ? style.form__name
+                      : `${style.form__name} ${style.error}`
+                  }
+                  {...register("lastName", { required: true })}
+                  placeholder="Пользователь"
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  value={searchValue}
                 />
+
+                {users && users?.length > 0  ? (
+                  <div className={style.list}>
+                    <div className={style.list__box}>
+                      {users?.map((option, index) => {
+                        return (
+                          <p
+                            ref={
+                              index + 1 === users.length ? lastItemRef : null
+                            }
+                            className={
+                              addedList.some((item) => item.id === option.id)
+                                ? `${style.list__box_item} ${style.disabled}`
+                                : style.list__box_item
+                            }
+                            key={option.value}
+                            onClick={() => {
+                              if (addedList.some((item) => item.id === option.id)) {
+                                setSearchValue('');
+                              } else {
+                                setSearchValue(option.label);
+                                setUserId(option.id!);
+                              }
+                              
+                            }}
+                          >
+                            {getHighlightedText(option.label)}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : !users?.length ? (
+                  <div className={style.list}>
+                    <div className={style.list__box}>
+                      <p
+                        className={`${style.list__box_item} ${style.list__box_notfound}`}
+                      >
+                        Пользователя с такими параметрами
+                        <span
+                          className={`${style.list__box_item} ${style.list__box_span}`}
+                        >
+                          не найден
+                        </span>
+                        , проверьте правильность написания или создайте нового!
+                      </p>
+                      <div
+                        className={`${style.list__box_item} ${style.list__add}`}
+                      >
+                        <img
+                          className={style.list__add_img}
+                          src="./img/add_user.png"
+                          alt="add_user"
+                        />
+                        <p className={style.list__add_text}>
+                          Добавить пользователя
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className={style.form__inputs_info}>
               <input
-                className={style.form__birth}
+                className={
+                  errors.birthday
+                    ? `${style.form__birth} ${style.error}`
+                    : style.form__birth
+                }
                 type="date"
                 {...register("birthday", { required: true })}
                 placeholder="Дата рождения"
@@ -108,7 +211,6 @@ const closePage = () => {
                     color: selectedGender === "female" ? "#FFFFFF" : "",
                   }}
                 >
-                  {/* <img src="./img/female.png" alt="female" /> */}
                   <svg
                     width="18"
                     height="18"
@@ -161,7 +263,6 @@ const closePage = () => {
                     />
                   </svg>
 
-                  {/* <img src="./img/male.png" alt="male" /> */}
                   <p>Мужской</p>
                 </div>
                 <input
@@ -176,7 +277,9 @@ const closePage = () => {
                 render={({ field, fieldState: { error } }) => (
                   <>
                     <Select
-                      className="select__control"
+                      className={
+                        error ? "select__control error" : "select__control"
+                      }
                       classNamePrefix="select"
                       {...field}
                       options={roleOptions}
