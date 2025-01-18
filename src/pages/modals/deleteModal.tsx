@@ -2,18 +2,42 @@ import { useNavigate } from "react-router-dom";
 import { ModalWrapper } from "../../features/modal-wrapper/modalWrapper";
 import style from "./modalStyles.module.scss";
 import { FC } from "react";
+import { useDeleteUserMutation } from "../../services/api";
+import { useAppDispatch } from "../../services/store";
+import { deleteAddedUser } from "../../services/slice";
 
 interface IDeleteModal {
   setIsModalActive: React.Dispatch<React.SetStateAction<boolean>>;
+  userId: number |null;
+  userName: string | null;
 }
 
-export const DeleteModal: FC<IDeleteModal> = ({ setIsModalActive }) => {
+export const DeleteModal: FC<IDeleteModal> = ({
+  setIsModalActive,
+  userId,
+  userName,
+}) => {
+  console.log(userId);
   const navigate = useNavigate();
-
-  const handleDelete = () => {};
+  const dispatch = useAppDispatch();
+  const [deleteUser] = useDeleteUserMutation();
+  const handleDelete = () => {
+    try {
+      if(userId) {
+        deleteUser(userId);
+        dispatch(deleteAddedUser(userId));
+        setIsModalActive(false)
+      }
+  
+    } catch (error) {
+      if (error) {
+        navigate("/error");
+      }
+    }
+  };
 
   const handleCancel = () => {
-    setIsModalActive(false)
+    setIsModalActive(false);
     navigate("/");
   };
 
@@ -28,9 +52,7 @@ export const DeleteModal: FC<IDeleteModal> = ({ setIsModalActive }) => {
         <p className={style.modal__info_text}>
           Вы хотите удалить пользователя:
         </p>
-        <h2 className={style.modal__info_heading}>
-          Казимир Антонина Рикудович
-        </h2>
+        <h2 className={style.modal__info_heading}>{userName}</h2>
       </div>
       <div className={style.modal__buttons}>
         <button
