@@ -1,72 +1,44 @@
-import { useEffect, useState } from "react";
-import { useCallback, useRef } from "react";
-
-import { useGetAllStaffQuery } from "../../services/api";
-import { getListOfUsers } from "../../services/slice";
-import { useAppDispatch, useAppSelector } from "../../services/store";
-import { IRoleOptions } from "../../interfaces/interfaces";
+import { useNavigate } from "react-router-dom";
 import { FormWrapper } from "../../features/formWrapper/formWrapper";
+import { useAddUserMutation } from "../../services/api";
+import { useAppDispatch } from "../../services/store";
+import { addPersonInHospital } from "../../services/slice";
+import { IAddFunction} from "../../interfaces/interfaces";
 
 export const NewUser = () => {
-  const [page, setPage] = useState(1);
-  const [searchValue, setSearchValue] = useState("");
-  const { data: allUsers } = useGetAllStaffQuery(page, {skip: page > 2});
-
-  const observer = useRef<IntersectionObserver | null>(null);
+  const [addUser, { isLoading: isAddLoading }] = useAddUserMutation();
   const dispatch = useAppDispatch();
-  const listOfUsers = useAppSelector((state) => state.usersSlice.listOfUsers);
+  const navigate = useNavigate();
 
-  const lastItemRef = useCallback((node: HTMLParagraphElement | null) => {
-    if (observer.current !== null) observer.current.disconnect();
-
-    observer.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setPage((prevPage) => prevPage + 1);
-      
-        }
-      },
-      {
-        threshold: 0.1,
+  const handleAdd = ({ userId, dataForm, userData }: IAddFunction) => {
+    try {
+      if (userId) {
+        addUser(userId);
       }
-    );
-    if (node) observer.current.observe(node);
-  }, []);
-console.log(page);
-  useEffect(() => {
-    if (allUsers){
-       dispatch(getListOfUsers(allUsers?.data));
+
+      if (userData) {
+        dispatch(addPersonInHospital({ form: dataForm, user: userData.data }));
       }
-  }, [dispatch, allUsers]);
-  console.log("allUsers", allUsers);
+      navigate("/success");
+    } catch (error) {
+      console.log(error);
+      if (error) {
+        navigate("/error");
+      }
+    }
+  };
 
-  console.log("list", listOfUsers);
-
-  const usersOptions: IRoleOptions[] | undefined = listOfUsers?.map((user) => {
-    const firstLetter = user.first_name.substring(0, 1) + ".";
-  
-
-    return {
-      value: user.last_name,
-      label: `${user.last_name} ${firstLetter}`,
-      id: user.id,
-    };
-  });
-  
-  const filteredArray = usersOptions?.filter((user) =>
-    user.value.toLowerCase().includes(searchValue.toLowerCase())
-  );
-  // console.log("filteredArray", filteredArray);
-
-  // console.log("searchValue", searchValue);
   return (
     <FormWrapper
       title="Добавить нового пользователя"
       buttonTitle="Добавить"
-      users={filteredArray}
-      lastItemRef={lastItemRef}
-      searchValue={searchValue}
-      setSearchValue={setSearchValue}
+      userValue=""
+      birthValue=""
+      roleValue=""
+      genderValue="female"
+      saveFunction={handleAdd}
+      isLoading={isAddLoading}
+      heading="Найти в списке"
     />
   );
 };

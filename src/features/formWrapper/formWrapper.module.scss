@@ -97,12 +97,17 @@
       z-index: 2;
     }
   }
-
+&__container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
   &__birth {
     background-color: #f2f4f7;
     border-radius: 16px;
     padding: 0 8px 0 14px;
     height: 100%;
+    width: 100%;
     &:focus {
       outline: none;
     }
@@ -112,6 +117,15 @@
       font-weight: 500;
       font-size: 14px;
       line-height: 18px;
+      padding: 0 25px;
+    }
+
+    &_span {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      width: 14.48px;
+      height: 16px;
     }
   }
 
@@ -272,5 +286,10 @@
 }
 
 .disabled {
-  background-color: red;
+  background-color: #F2F4F7;
+  color: #42474d;
+
+  &:hover {
+    background-color: #F2F4F7;
+  }
 }

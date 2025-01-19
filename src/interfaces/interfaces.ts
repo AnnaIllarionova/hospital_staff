@@ -1,10 +1,13 @@
 export interface IFormWrapper {
   title: string;
   buttonTitle: string;
-  users: IRoleOptions[] | undefined;
-  lastItemRef: React.LegacyRef<HTMLParagraphElement> | null;
-  setSearchValue: React.Dispatch<React.SetStateAction<string>>;
-  searchValue: string;
+  userValue: string | undefined;
+  birthValue: string | undefined;
+  roleValue: string | undefined;
+  genderValue: string | undefined;
+  saveFunction: ({ userId, dataForm, userData }: IAddFunction) => void;
+  isLoading: boolean;
+  heading: string;
 }
 
 export type FormData = {
@@ -29,11 +32,11 @@ export interface IUser {
 }
 
 export interface IUserData {
-    data: IUser
-    support: {
-        text: string
-        url: string
-    }
+  data: IUser;
+  support: {
+    text: string;
+    url: string;
+  };
 }
 
 export interface IAllUsers {
@@ -49,22 +52,45 @@ export interface IAllUsers {
 }
 
 export interface IAddedPerson {
-  avatar: string,
-  userName: string
-  email: string
-  birthday: string
-  gender: string
-  role: string
-  id: number
+  avatar: string;
+  userName: string;
+  email: string;
+  birthday: string;
+  gender: string;
+  role: string;
+  id: number;
 }
 
 export interface IState {
   listOfUsers: IUser[];
   addedList: IAddedPerson[];
   sortedList: IAddedPerson[];
+  sortedListByGender: IAddedPerson[];
+  sortedListByBirth: IAddedPerson[];
+  currentUser: IAddedPerson | null | undefined;
 }
 
 export interface IAddedInList {
-    user: IUser
-    form: FormData
+  user?: IUser;
+  form: FormData;
+  id?: number;
 }
+
+export interface IAddFunction {
+  userId?: number | undefined;
+  dataForm: FormData;
+  userData?: IUserData | undefined;
+}
+
+export interface IPatch {
+  lastName: string;
+  birthday: string;
+  gender: string;
+  role: string;
+  id: number;
+}
+
+export interface ISearchInAdded {
+  setSearchText: React.Dispatch<React.SetStateAction<string>>;
+}
+

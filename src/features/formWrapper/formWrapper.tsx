@@ -1,4 +1,4 @@
-import { FC,useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import style from "./formWrapper.module.scss";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
@@ -9,90 +9,127 @@ import {
   IFormWrapper,
   IRoleOptions,
 } from "../../interfaces/interfaces";
-import { useGetUserQuery } from "../../services/api";
+import { useGetAllStaffQuery, useGetUserQuery } from "../../services/api";
 import { useAppDispatch, useAppSelector } from "../../services/store";
-import { addPersonInHospital } from "../../services/slice";
+import { getListOfUsers } from "../../services/slice";
+import { getHighlightedText } from "../getHightlightedText/getHightlightedText";
 
 export const FormWrapper: FC<IFormWrapper> = ({
   title,
   buttonTitle,
-  lastItemRef,
-  searchValue,
-  setSearchValue,
-  users,
+  saveFunction,
+  isLoading,
+  heading,
+  userValue,
+  birthValue,
+  genderValue,
+  roleValue,
 }) => {
   const [userId, setUserId] = useState<number>();
+  const [isBirthFocused, setIsBirthFocused] = useState(false);
+  const [isOptionsVisible, setIsOptionsVisible] = useState(false);
   const { data: userData } = useGetUserQuery(userId!, { skip: !userId });
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const addedList = useAppSelector((state) => state.usersSlice.addedList);
-  console.log(addedList);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const listOfUsers = useAppSelector((state) => state.usersSlice.listOfUsers);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState("");
   const {
     register,
     handleSubmit,
     control,
     setValue,
     watch,
+
     formState: { errors },
   } = useForm<FormData>({
     mode: "onBlur",
     defaultValues: {
-      gender: "female",
+      gender: genderValue,
+      lastName: userValue,
+      birthday: birthValue,
+      role: roleValue,
     },
   });
 
   const onSubmit = handleSubmit((dataForm) => {
-    try {
-      if (userData) {
-        dispatch(addPersonInHospital({ form: dataForm, user: userData.data }));
-      }
-      navigate("/success");
-    } catch (error) {
-      console.log(error);
-      if (error) {
-        navigate("/error");
-      }
-    }
+    saveFunction({ dataForm: dataForm, userId: userId, userData: userData });
   });
-  const selectedGender = watch("gender", "female");
-  const roleOptions: IRoleOptions[] = [
-    { value: "Доктор", label: "Доктор" },
-    {
-      value: selectedGender === "female" ? "Медсестра" : "Медбрат",
-      label: selectedGender === "female" ? "Медсестра" : "Медбрат",
-    },
-    { value: "Админ", label: "Админ" },
-  ];
-  const closePage = () => {
+  const selectedGender = watch("gender", genderValue);
+  const roleOptions: IRoleOptions[] = useMemo(
+    () => [
+      { id: 1, value: "Доктор", label: "Доктор" },
+      {
+        id: 2,
+        value: selectedGender === "female" ? "Медсестра" : "Медбрат",
+        label: selectedGender === "female" ? "Медсестра" : "Медбрат",
+      },
+      { id: 3, value: "Админ", label: "Админ" },
+    ],
+    [selectedGender]
+  );
+
+  const { data: allUsers, error: allUsersError } = useGetAllStaffQuery(page, {
+    skip: page > 2,
+  });
+
+  const lastItemRef = useCallback((node: HTMLParagraphElement | null) => {
+    if (observer.current !== null) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setPage((prevPage) => prevPage + 1);
+        }
+      },
+      {
+        threshold: 0.1,
+      }
+    );
+    if (node) observer.current.observe(node);
+  }, []);
+
+  useEffect(() => {
+    if (allUsers) {
+      dispatch(getListOfUsers(allUsers?.data));
+    }
+  }, [dispatch, allUsers]);
+
+  if (allUsersError) {
+    navigate("/error");
+  }
+
+  const usersOptions: IRoleOptions[] | undefined = listOfUsers?.map((user) => {
+    const firstLetter = user.first_name.substring(0, 1) + ".";
+
+    return {
+      value: user.last_name,
+      label: `${user.last_name} ${firstLetter}`,
+      id: user.id,
+    };
+  });
+
+  const users = usersOptions?.filter((user) =>
+    user.value.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
+  const closePage = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigate("/");
   };
-  
-  const getHighlightedText = (lastName: string) => {
-    if (searchValue === "") return lastName;
-    const regExp = new RegExp(searchValue, "ig");
-    const matchValue = lastName.match(regExp);
 
-    if (matchValue) {
-      const matchedParts: string[] = lastName.split(regExp);
-      return matchedParts.map((part, index, array) => {
-        if (index < array.length - 1) {
-          const text = matchValue!.shift();
-
-          return (
-            <span key={index}>
-              {part}
-              <span className={style.highlighted}>{text}</span>
-            </span>
-          );
-        }
-        return part;
-      });
-    } else {
-      return lastName;
+  useEffect(() => {
+    if (usersOptions.some((user) => user.label === searchValue)) {
+      setIsOptionsVisible(false);
     }
-  };
-  // console.log("users", users);
+  }, [searchValue, usersOptions]);
 
+  const handleSetNewUser = () => {
+    navigate("/new");
+  };
   return (
     <div className={style.wrapper}>
       <div className={style.form}>
@@ -106,101 +143,159 @@ export const FormWrapper: FC<IFormWrapper> = ({
         <form onSubmit={onSubmit} className={style.form__box}>
           <div className={style.form__inputs}>
             <div className={style.form__inputs_search}>
-              <h2 className={style.form__inputs_heading}>Найти в списке</h2>
-              <div className={style.form__user}>
-                <img
-                  className={style.form__user_img}
-                  src="./img/search.png"
-                  alt="user"
-                />
-                <label className={style.form__user_label} htmlFor=""></label>
+              <h2 className={style.form__inputs_heading}>{heading}</h2>
 
-                <input
-                  type="text"
-                  className={
-                    !errors.lastName
-                      ? style.form__name
-                      : `${style.form__name} ${style.error}`
-                  }
-                  {...register("lastName", { required: true })}
-                  placeholder="Пользователь"
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  value={searchValue}
-                />
+              <Controller
+                control={control}
+                name="lastName"
+                rules={{
+                  required: true,
+                }}
+                render={({ field }) => (
+                  <div className={style.form__user}>
+                    <img
+                      className={style.form__user_img}
+                      src="/img/search.png"
+                      alt="user"
+                    />
+                    <input
+                      {...field}
+                      autoComplete="off"
+                      type="text"
+                      className={
+                        !errors.lastName ||
+                        (usersOptions!.some(
+                          (user) => user.label === searchValue
+                        ) &&
+                          searchValue === "")
+                          ? style.form__name
+                          : `${style.form__name} ${style.error}`
+                      }
+                      placeholder="Пользователь"
+                      onChange={(e) => {
+                        setSearchValue(e.target.value);
+                        field.onChange(e);
+                      }}
+                      value={field.value}
+                      onFocus={() => {
+                        setIsOptionsVisible(true);
+                      }}
+                    />
 
-                {users && users?.length > 0  ? (
-                  <div className={style.list}>
-                    <div className={style.list__box}>
-                      {users?.map((option, index) => {
-                        return (
-                          <p
-                            ref={
-                              index + 1 === users.length ? lastItemRef : null
-                            }
-                            className={
-                              addedList.some((item) => item.id === option.id)
-                                ? `${style.list__box_item} ${style.disabled}`
-                                : style.list__box_item
-                            }
-                            key={option.value}
-                            onClick={() => {
-                              if (addedList.some((item) => item.id === option.id)) {
-                                setSearchValue('');
-                              } else {
-                                setSearchValue(option.label);
-                                setUserId(option.id!);
-                              }
-                              
-                            }}
-                          >
-                            {getHighlightedText(option.label)}
-                          </p>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : !users?.length ? (
-                  <div className={style.list}>
-                    <div className={style.list__box}>
-                      <p
-                        className={`${style.list__box_item} ${style.list__box_notfound}`}
-                      >
-                        Пользователя с такими параметрами
-                        <span
-                          className={`${style.list__box_item} ${style.list__box_span}`}
-                        >
-                          не найден
-                        </span>
-                        , проверьте правильность написания или создайте нового!
-                      </p>
-                      <div
-                        className={`${style.list__box_item} ${style.list__add}`}
-                      >
-                        <img
-                          className={style.list__add_img}
-                          src="./img/add_user.png"
-                          alt="add_user"
-                        />
-                        <p className={style.list__add_text}>
-                          Добавить пользователя
-                        </p>
+                    {users && users?.length > 0 && isOptionsVisible ? (
+                      <div className={style.list}>
+                        <div className={style.list__box}>
+                          {users?.map((option, index) => {
+                            return (
+                              <p
+                                ref={
+                                  index + 1 === users.length
+                                    ? lastItemRef
+                                    : null
+                                }
+                                className={
+                                  addedList.some(
+                                    (item) => item.id === option.id
+                                  )
+                                    ? `${style.list__box_item} ${style.disabled}`
+                                    : style.list__box_item
+                                }
+                                key={option.value}
+                                onClick={() => {
+                                  if (
+                                    addedList.some(
+                                      (item) => item.id === option.id
+                                    )
+                                  ) {
+                                    setValue("lastName", "");
+                                    setSearchValue("");
+                                    setIsOptionsVisible(false);
+                                  } else {
+                                    setValue("lastName", option.label);
+                                    setSearchValue(option.label);
+                                    setUserId(option.id!);
+                                    setIsOptionsVisible(false);
+                                  }
+                                }}
+                              >
+                                {getHighlightedText(option.label, searchValue)}
+                              </p>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    ) : !users?.length && isOptionsVisible ? (
+                      <div className={style.list}>
+                        <div className={style.list__box}>
+                          <p
+                            className={`${style.list__box_item} ${style.list__box_notfound}`}
+                          >
+                            Пользователя с такими параметрами
+                            <span
+                              className={`${style.list__box_item} ${style.list__box_span}`}
+                            >
+                              не найден
+                            </span>
+                            , проверьте правильность написания или создайте
+                            нового!
+                          </p>
+                          <div
+                            onClick={handleSetNewUser}
+                            className={`${style.list__box_item} ${style.list__add}`}
+                          >
+                            <img
+                              className={style.list__add_img}
+                              src="/img/add_user.png"
+                              alt="add_user"
+                            />
+                            <p className={style.list__add_text}>
+                              Добавить пользователя
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </div>
-            <div className={style.form__inputs_info}>
-              <input
-                className={
-                  errors.birthday
-                    ? `${style.form__birth} ${style.error}`
-                    : style.form__birth
-                }
-                type="date"
-                {...register("birthday", { required: true })}
-                placeholder="Дата рождения"
+                )}
               />
+            </div>
+
+            <div className={style.form__inputs_info}>
+              <Controller
+                control={control}
+                name="birthday"
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <div className={style.form__container}>
+                    <input
+                      max="2007-01-01"
+                      className={
+                        errors.birthday
+                          ? `${style.form__birth} ${style.error}`
+                          : style.form__birth
+                      }
+                      type={!isBirthFocused && !field.value ? "text" : "date"}
+                      {...field}
+                      placeholder={
+                        !isBirthFocused && !field.value ? "Дата рождения" : ""
+                      }
+                      onFocus={() => setIsBirthFocused(true)}
+                      onBlur={() => {
+                        setIsBirthFocused(false);
+                        field.onBlur();
+                      }}
+                    />
+                    {!isBirthFocused && !field.value ? (
+                      <img
+                        src="/img/calendar.png"
+                        alt="calendar"
+                        className={style.form__birth_span}
+                      />
+                    ) : null}
+                  </div>
+                )}
+              />
+
               <div className={style.form__gender}>
                 <div
                   onClick={() => setValue("gender", "female")}
@@ -274,41 +369,64 @@ export const FormWrapper: FC<IFormWrapper> = ({
                 control={control}
                 name="role"
                 rules={{ required: true }}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Select
-                      className={
-                        error ? "select__control error" : "select__control"
-                      }
-                      classNamePrefix="select"
-                      {...field}
-                      options={roleOptions}
-                      placeholder="Роль"
-                      value={roleOptions!.find(
-                        (option) => option.value === field.value
-                      )}
-                      onChange={(selectedOption) =>
-                        field.onChange(
-                          selectedOption ? selectedOption.value : null
-                        )
-                      }
-                    />
-                    {error && <p>{error.message}</p>}
-                  </>
-                )}
+                render={({ field, fieldState: { error } }) => {
+                  return (
+                    <>
+                      <Select
+                        className="select__control"
+                        classNamePrefix="select"
+                        {...field}
+                        isSearchable={false}
+                        options={roleOptions}
+                        placeholder="Роль"
+                        styles={{
+                          control: (provided) => ({
+                            ...provided,
+                            backgroundColor: error
+                              ? "#FFE9E5 !important"
+                              : "#f2f4f7 !important",
+                          }),
+                        }}
+                        value={roleOptions!.find(
+                          (option) => option.value === field.value
+                        )}
+                        onChange={(selectedOption) =>
+                          field.onChange(
+                            selectedOption ? selectedOption.value : null
+                          )
+                        }
+                      />
+                      {errors && <p>{errors.role?.message}</p>}
+                    </>
+                  );
+                }}
               />
             </div>
           </div>
           <div className={style.form__buttons}>
             <button
-              className={`${style.form__buttons_button} ${style.form__buttons_add}`}
+              className={
+                isLoading ||
+                errors.lastName !== undefined ||
+                errors.birthday !== undefined ||
+                errors.role !== undefined
+                  ? `${style.form__buttons_button} ${style.form__buttons_add} ${style.disabled}`
+                  : `${style.form__buttons_button} ${style.form__buttons_add}`
+              }
               type="submit"
+              disabled={
+                isLoading ||
+                errors.lastName !== undefined ||
+                errors.birthday !== undefined ||
+                errors.role !== undefined
+              }
             >
-              {buttonTitle}
+              {isLoading ? "Подождите..." : buttonTitle}
             </button>
+
             <button
               className={`${style.form__buttons_button} ${style.form__buttons_cancel}`}
-              onClick={closePage}
+              onClick={(e) => closePage(e)}
             >
               Отменить
             </button>
