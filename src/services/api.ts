@@ -22,7 +22,25 @@ export const staffApi = createApi({
         method: "DELETE",
       }),
     }),
+    addUser: builder.mutation<void, number>({
+      query: (id: number) => ({
+        url: `https://reqres.in/api/users/${id}`,
+        method: "PUT",
+      }),
+    }),
+    editUser: builder.mutation<void, number>({
+      query: ( id : number) => ({
+        url: `https://reqres.in/api/users/${id}`,
+        method: "PATCH",
+      }),
+    }),
   }),
 });
 
-export const { useGetAllStaffQuery, useGetUserQuery, useDeleteUserMutation } = staffApi;
+export const {
+  useGetAllStaffQuery,
+  useGetUserQuery,
+  useDeleteUserMutation,
+  useAddUserMutation,
+  useEditUserMutation,
+} = staffApi;
