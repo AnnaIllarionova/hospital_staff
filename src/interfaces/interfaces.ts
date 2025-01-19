@@ -89,3 +89,8 @@ export interface IPatch {
   role: string;
   id: number;
 }
+
+export interface ISearchInAdded {
+  setSearchText: React.Dispatch<React.SetStateAction<string>>;
+}
+

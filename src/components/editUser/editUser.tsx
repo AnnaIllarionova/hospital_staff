@@ -8,18 +8,15 @@ import { useEditUserMutation } from "../../services/api";
 export const EditUser = () => {
   const currentUserId = useParams();
   const currentId = Number(currentUserId.id);
-  console.log(currentId);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.usersSlice.currentUser);
 
-  console.log(currentUser);
   const [editUser, {isLoading: isEditLoading }] = useEditUserMutation();
 
   const handleSave = ({ dataForm }: IAddFunction) => {
     try {
       if (currentId) {
-        console.log(1);
         editUser(currentId);
       }
 

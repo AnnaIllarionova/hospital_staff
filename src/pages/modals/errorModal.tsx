@@ -9,10 +9,10 @@ export const ErrorModal = () => {
   };
   return (
     <ModalWrapper setIsModalActive={() => {}}>
-      <div className={style.modal__error} >
+      <div className={style.modal__error}>
         <img
           className={style.modal__error_img}
-          src="./img/img_error.png"
+          src="/img/img_error.png"
           alt="error"
         />
         <h2 className={style.modal__info_heading}>

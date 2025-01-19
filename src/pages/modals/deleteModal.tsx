@@ -19,7 +19,7 @@ export const DeleteModal: FC<IDeleteModal> = ({
 }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [deleteUser, {isLoading: IsDeleteLoading}] = useDeleteUserMutation();
+  const [deleteUser, { isLoading: IsDeleteLoading }] = useDeleteUserMutation();
   const handleDelete = () => {
     try {
       if (userId) {
@@ -44,7 +44,7 @@ export const DeleteModal: FC<IDeleteModal> = ({
     <ModalWrapper setIsModalActive={setIsModalActive}>
       <img
         className={style.modal__img}
-        src="./img/icon_delete.png"
+        src="/img/icon_delete.png"
         alt="delete"
       />
       <div className={style.modal__info}>
@@ -59,7 +59,7 @@ export const DeleteModal: FC<IDeleteModal> = ({
           className={`${style.modal__buttons_button} ${style.modal__buttons_del}`}
           disabled={IsDeleteLoading}
         >
-         {IsDeleteLoading ? 'Удаляем...' :'Удалить'}
+          {IsDeleteLoading ? "Удаляем..." : "Удалить"}
         </button>
         <button
           onClick={handleCancel}

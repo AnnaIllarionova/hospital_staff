@@ -11,7 +11,7 @@ export const SuccessModal = () => {
     <ModalWrapper setIsModalActive={() => {}}>
       <img
         className={style.modal__img}
-        src="./img/icon_success.png"
+        src="/img/icon_success.png"
         alt="done"
       />
       <h2 className={style.modal__info_heading}>Данные успешно сохранены</h2>

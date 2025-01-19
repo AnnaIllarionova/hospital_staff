@@ -68,7 +68,6 @@ export const usersSlice = createSlice({
       const editedIndex: number | undefined = state.addedList.findIndex(
         (user) => user.id === action.payload.id
       );
-      console.log(editedIndex);
       state.addedList[editedIndex].birthday = action.payload.form.birthday;
       state.addedList[editedIndex].gender = action.payload.form.gender;
       state.addedList[editedIndex].role = action.payload.form.role;

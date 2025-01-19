@@ -3,7 +3,7 @@ import { FormWrapper } from "../../features/formWrapper/formWrapper";
 import { useAddUserMutation } from "../../services/api";
 import { useAppDispatch } from "../../services/store";
 import { addPersonInHospital } from "../../services/slice";
-import { IAddFunction } from "../../interfaces/interfaces";
+import { IAddFunction} from "../../interfaces/interfaces";
 
 export const NewUser = () => {
   const [addUser, { isLoading: isAddLoading }] = useAddUserMutation();
@@ -13,7 +13,6 @@ export const NewUser = () => {
   const handleAdd = ({ userId, dataForm, userData }: IAddFunction) => {
     try {
       if (userId) {
-        console.log(22);
         addUser(userId);
       }
 

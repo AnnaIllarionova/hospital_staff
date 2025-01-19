@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import style from "./formWrapper.module.scss";
 import { Controller, useForm } from "react-hook-form";
 import Select from "react-select";
@@ -12,6 +12,7 @@ import {
 import { useGetAllStaffQuery, useGetUserQuery } from "../../services/api";
 import { useAppDispatch, useAppSelector } from "../../services/store";
 import { getListOfUsers } from "../../services/slice";
+import { getHighlightedText } from "../getHightlightedText/getHightlightedText";
 
 export const FormWrapper: FC<IFormWrapper> = ({
   title,
@@ -31,12 +32,17 @@ export const FormWrapper: FC<IFormWrapper> = ({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const addedList = useAppSelector((state) => state.usersSlice.addedList);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const listOfUsers = useAppSelector((state) => state.usersSlice.listOfUsers);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState("");
   const {
     register,
     handleSubmit,
     control,
     setValue,
     watch,
+
     formState: { errors },
   } = useForm<FormData>({
     mode: "onBlur",
@@ -49,26 +55,25 @@ export const FormWrapper: FC<IFormWrapper> = ({
   });
 
   const onSubmit = handleSubmit((dataForm) => {
-    console.log('dataForm', dataForm);
     saveFunction({ dataForm: dataForm, userId: userId, userData: userData });
   });
   const selectedGender = watch("gender", genderValue);
-  const roleOptions: IRoleOptions[] = [
-    { value: "Доктор", label: "Доктор" },
-    {
-      value: selectedGender === "female" ? "Медсестра" : "Медбрат",
-      label: selectedGender === "female" ? "Медсестра" : "Медбрат",
-    },
-    { value: "Админ", label: "Админ" },
-  ];
-  const [page, setPage] = useState(1);
-  const [searchValue, setSearchValue] = useState("");
+  const roleOptions: IRoleOptions[] = useMemo(
+    () => [
+      { id: 1, value: "Доктор", label: "Доктор" },
+      {
+        id: 2,
+        value: selectedGender === "female" ? "Медсестра" : "Медбрат",
+        label: selectedGender === "female" ? "Медсестра" : "Медбрат",
+      },
+      { id: 3, value: "Админ", label: "Админ" },
+    ],
+    [selectedGender]
+  );
+
   const { data: allUsers, error: allUsersError } = useGetAllStaffQuery(page, {
     skip: page > 2,
   });
-
-  const observer = useRef<IntersectionObserver | null>(null);
-  const listOfUsers = useAppSelector((state) => state.usersSlice.listOfUsers);
 
   const lastItemRef = useCallback((node: HTMLParagraphElement | null) => {
     if (observer.current !== null) observer.current.disconnect();
@@ -110,35 +115,21 @@ export const FormWrapper: FC<IFormWrapper> = ({
     user.value.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  const closePage = () => {
+  const closePage = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigate("/");
   };
 
-  const getHighlightedText = (lastName: string) => {
-    if (searchValue === "") return lastName;
-    const regExp = new RegExp(searchValue, "ig");
-    const matchValue = lastName.match(regExp);
-
-    if (matchValue) {
-      const matchedParts: string[] = lastName.split(regExp);
-      return matchedParts.map((part, index, array) => {
-        if (index < array.length - 1) {
-          const text = matchValue!.shift();
-
-          return (
-            <span key={index}>
-              {part}
-              <span className={style.highlighted}>{text}</span>
-            </span>
-          );
-        }
-        return part;
-      });
-    } else {
-      return lastName;
+  useEffect(() => {
+    if (usersOptions.some((user) => user.label === searchValue)) {
+      setIsOptionsVisible(false);
     }
-  };
+  }, [searchValue, usersOptions]);
 
+  const handleSetNewUser = () => {
+    navigate("/new");
+  };
   return (
     <div className={style.wrapper}>
       <div className={style.form}>
@@ -157,7 +148,9 @@ export const FormWrapper: FC<IFormWrapper> = ({
               <Controller
                 control={control}
                 name="lastName"
-                rules={{ required: true }}
+                rules={{
+                  required: true,
+                }}
                 render={({ field }) => (
                   <div className={style.form__user}>
                     <img
@@ -169,9 +162,12 @@ export const FormWrapper: FC<IFormWrapper> = ({
                       {...field}
                       autoComplete="off"
                       type="text"
-                      min='2025-01-01'
                       className={
-                        !errors.lastName
+                        !errors.lastName ||
+                        (usersOptions!.some(
+                          (user) => user.label === searchValue
+                        ) &&
+                          searchValue === "")
                           ? style.form__name
                           : `${style.form__name} ${style.error}`
                       }
@@ -222,7 +218,7 @@ export const FormWrapper: FC<IFormWrapper> = ({
                                   }
                                 }}
                               >
-                                {getHighlightedText(option.label)}
+                                {getHighlightedText(option.label, searchValue)}
                               </p>
                             );
                           })}
@@ -244,11 +240,12 @@ export const FormWrapper: FC<IFormWrapper> = ({
                             нового!
                           </p>
                           <div
+                            onClick={handleSetNewUser}
                             className={`${style.list__box_item} ${style.list__add}`}
                           >
                             <img
                               className={style.list__add_img}
-                              src="./img/add_user.png"
+                              src="/img/add_user.png"
                               alt="add_user"
                             />
                             <p className={style.list__add_text}>
@@ -271,6 +268,7 @@ export const FormWrapper: FC<IFormWrapper> = ({
                 render={({ field }) => (
                   <div className={style.form__container}>
                     <input
+                      max="2007-01-01"
                       className={
                         errors.birthday
                           ? `${style.form__birth} ${style.error}`
@@ -289,7 +287,7 @@ export const FormWrapper: FC<IFormWrapper> = ({
                     />
                     {!isBirthFocused && !field.value ? (
                       <img
-                        src="./img/calendar.png"
+                        src="/img/calendar.png"
                         alt="calendar"
                         className={style.form__birth_span}
                       />
@@ -425,9 +423,10 @@ export const FormWrapper: FC<IFormWrapper> = ({
             >
               {isLoading ? "Подождите..." : buttonTitle}
             </button>
+
             <button
               className={`${style.form__buttons_button} ${style.form__buttons_cancel}`}
-              onClick={closePage}
+              onClick={(e) => closePage(e)}
             >
               Отменить
             </button>

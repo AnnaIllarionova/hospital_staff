@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import { DeleteModal } from "../../pages/modals/deleteModal";
 import { useAppDispatch, useAppSelector } from "../../services/store";
 import { IAddedPerson } from "../../interfaces/interfaces";
-import { findCurrentUser, getSortedAddedList, getSortedByDate, getSortedByGender } from "../../services/slice";
+import {
+  findCurrentUser,
+  getSortedAddedList,
+  getSortedByDate,
+  getSortedByGender,
+} from "../../services/slice";
 import { useNavigate } from "react-router-dom";
 
 export const AddedUsers = () => {
@@ -15,9 +20,11 @@ export const AddedUsers = () => {
   const [isSortedByBirth, setIsSortedByBirth] = useState(false);
   const addedList = useAppSelector((state) => state.usersSlice.addedList);
   const sortedList = useAppSelector((state) => state.usersSlice.sortedList);
+  const [searchText, setSearchText] = useState("");
   const [listOfAdded, setListOfAdded] = useState<IAddedPerson[]>(addedList);
   const [userId, setUserId] = useState<number | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -72,8 +79,12 @@ export const AddedUsers = () => {
 
   const handleMoveToEdit = (id: number) => {
     dispatch(findCurrentUser(id));
-    navigate(`/edit/${id}`)
-  }
+    navigate(`/edit/${id}`);
+  };
+
+  const filteredList = listOfAdded.filter((item) =>
+    item.userName.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <>
@@ -88,7 +99,7 @@ export const AddedUsers = () => {
           <AddNewUserButton />
         </header>
         <div className={style.added__info}>
-          <SearchInAdded />
+          <SearchInAdded setSearchText={setSearchText} />
           <div className={style.added__headings}>
             <div className={style.added__headings_box}>
               <p className={style.added__headings_text}>
@@ -100,7 +111,7 @@ export const AddedUsers = () => {
                   {isSorted ? "По умолчанию" : "По алфавиту А-Я"}
                 </span>
               </p>
-              <img src="./img/sort.png" alt="sort" />
+              <img src="/img/sort.png" alt="sort" />
             </div>
             <p className={style.added__headings_text}>Контактные данные</p>
             <p
@@ -118,13 +129,13 @@ export const AddedUsers = () => {
             <p className={style.added__headings_text}>Роль</p>
           </div>
         </div>
-        {listOfAdded.map((person) => (
+        {filteredList.map((person) => (
           <div className={style.added__users} key={person.id}>
             <div className={style.added__user}>
               <div className={style.added__user_info}>
                 <img
                   className={style.added__user_photo}
-                  src={person.avatar ? person.avatar : "./img/female_photo.png"}
+                  src={person.avatar ? person.avatar : "/img/female_photo.png"}
                   alt="photo"
                 />
                 <p className={style.added__user_text}>{person.userName}</p>
@@ -140,8 +151,8 @@ export const AddedUsers = () => {
                   className={style.added__user_icon}
                   src={
                     person.gender === "female"
-                      ? "./img/female.png"
-                      : "./img/male.png"
+                      ? "/img/female.png"
+                      : "/img/male.png"
                   }
                   alt="male_or_female"
                 />
@@ -151,10 +162,13 @@ export const AddedUsers = () => {
               </div>
               <p className={style.added__user_text}>{person.role}</p>
               <div className={style.added__user_box}>
-                <button className={style.added__user_button} onClick={() => handleMoveToEdit(person.id)}>
+                <button
+                  className={style.added__user_button}
+                  onClick={() => handleMoveToEdit(person.id)}
+                >
                   <img
                     className={style.added__user_edit}
-                    src="./img/edit.png"
+                    src="/img/edit.png"
                     alt="edit"
                   />
                 </button>
@@ -168,7 +182,7 @@ export const AddedUsers = () => {
                 >
                   <img
                     className={style.added__user_delete}
-                    src="./img/delete.png"
+                    src="/img/delete.png"
                     alt="delete"
                   />
                 </button>
